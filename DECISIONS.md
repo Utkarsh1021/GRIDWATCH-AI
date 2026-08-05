@@ -36,6 +36,30 @@ reused the same per-pole seqs (0, 100, …) as the fault, so per-device seq
 dedupe dropped the `power_restored` events and auto-verify never fired. Repair
 now starts at 1,000,000 so dedupe never discards a restoration.
 
+**L8a — Fault/repair seqs are now derived from the runtime's live seq
+high-water, not fixed bases.** Iterating the demo loop (fault → repair →
+fault…) exposed a second seq-collision: re-injecting a fault on an
+already-repaired DT emitted messages but every one was dropped as out-of-order,
+because its fixed seq base sat below the current `deviceSeq`. Now both `darken`
+and `repair` start each device at `deviceSeq + 1`, so repeated injections
+always clear dedupe regardless of prior fault/repair history.
+
+**L8b — Verification is scored against reportable (device-bearing) poles.**
+Auto-verify judged `live / affected_pole_ids.length`. A span whose dark region
+crossed several device-less poles could never reach the 0.9 threshold even fully
+restored (e.g. 35/40 = 87.5%) — the ticket hung at `detected` forever. Fix:
+denominator is the count of affected poles that have a device; device-less poles
+are excluded since they physically cannot report telemetry.
+
+**L8c — Ingest log insert is dedupe-tolerant, not dedupe-strict.** The
+append-only `telemetry_events` log has a unique `(device_id, seq)` index, but
+seq resets on boot per the telemetry contract — so a re-delivered post-boot
+batch can collide and fail the whole insert. The writer previously re-queued the
+entire failed batch, yielding a livelock (found under the 5,000 msg/s sustained
+run). Fix: `.onConflictDoNothing()` on the log insert. The log is a denormalized
+audit trail; the source of truth is the runtime seq/power state, which is what
+drives detection.
+
 **L9 — Docker image tags.** Two services from one Dockerfile; they must be
 tagged distinctly (`gridwatch-api:local`, `gridwatch-web:local`) or the second
 build fails with "already exists". Ports are env-templated (`API_PORT`,

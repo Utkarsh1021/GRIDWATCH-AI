@@ -308,13 +308,28 @@ output: brief text << 200 words + a checklist.
 
 ## 11. Performance (measured, not claimed)
 
-| Metric | Target | Status |
-|--------|--------|--------|
-| Fault → ticket visible | < 120 s p95 | fast path: `power_lost` burst, = near-real-time + debounce. **Measured number recorded after load test.** |
-| Ingest sustained | ≥ 500 msg/s | **measured** with load script |
-| Ingest burst | 5,000/10 s, no loss | **measured** |
-| Console incident list | < 2 s | **measured** |
-| Restoration → auto-verified | < 120 s | heartbeat-restore fast path. **measured** |
+| Metric | Target | Measured |
+|--------|--------|----------|
+| Fault → localized ticket visible | < 120 s p95 | 15.5 s p95 / 15.5 s max (3 clean iterations) |
+| Ingest sustained | ≥ 500 msg/s | 991 msg/s achieved, 0 dropped, buffer high-water 500 |
+| Ingest burst | 5,000/10 s, no loss | 5000 accepted / 5000 applied / 0 dropped, 1.26 s round-trip |
+| Console incident list | < 2 s | 15 ms p50 / 20 ms p95 / 135 ms max (30 iters) |
+| Restoration → auto-verified | < 120 s | 15.3 s p95 / 15.3 s max (3 clean iterations) |
+
+All numbers recorded with the in-repo load harness on a freshly seeded network
+(1801 poles, 24 DTs, 8 feeders, 1660 devices):
+
+```
+pnpm --filter @gridwatch/api load burst --msgs 5000
+pnpm --filter @gridwatch/api load sustained --seconds 30 --rate 1000
+pnpm --filter @gridwatch/api load console --iters 30
+pnpm --filter @gridwatch/api load loop --iters 3
+```
+
+Sustained was also probed at a 5000 msg/s target: the server absorbed every
+message with zero loss (client single-thread pacing is the bottleneck, not the
+ingest). Serialized `power_lost` bursts mean the fast path is dominated by the
+detection debounce window rather than ingest throughput.
 
 Slow path (fw 1.2 / lost `power_lost`) detection latency is bounded by the
 heartbeat-silence window (~16–20 min) — a documented trade-off of the data
