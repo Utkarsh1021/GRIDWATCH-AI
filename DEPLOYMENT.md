@@ -74,19 +74,50 @@ docker compose up --build # fresh seed on boot
 
 ## Deploying to a public URL (G4)
 
-The same compose is the deploy artifact. Options:
+The same compose is the deploy artifact, but the included `render.yaml` is the
+quick path to a free, public URL. It runs **api + web in one Render service**
+(a single container via `entrypoint.sh`), so the free tier's per-service sleep
+does not double the cold-start window — one free sleep cycle, one URL.
 
-1. **One host, one artifact (recommended):** a Render/Railway "Docker" service,
-   or any small VPS (e.g., $5/mo) running the `docker-compose.yml` as-is with
-   `DB` reachable on the same host. Because `web` proxies `/api`, one public
-   port is enough.
-2. **Free-tier caveats:** Render free Web Service **sleeps after 15 min idle**
-   and cold-starts; first load may take 20–60 s. **Say this in the README** and
-   keep the demo video as the fallback (G6). Railway free tier is similar.
-3. **TLS:** Render/Railway give you an https URL directly. On a raw VPS, put
-   Caddy (auto-TLS) in front, or accept http for the demo and note it.
+1. **Free Postgres (Neon):** sign up at neon.tech → create a project → copy the
+   `postgres://...` connection string. It never expires and pauses when idle.
+   (The app re-seeds on boot, so the DB is throwaway anyway.)
+2. **Deploy:** push this repo, then in the Render Dashboard:
+   **New → Blueprint → connect the GitHub repo → Apply.** `render.yaml` creates
+   the `gridwatch-ai` web service for you.
+3. **Wire the DB:** after Apply, open the service → **Environment** → set
+   `POSTGRES_URL` to your Neon string (Render prompts for it because
+   `sync: false`) and save.
+4. **Open the URL:** Render shows `https://gridwatch-ai-<hash>.onrender.com`.
+   Free tier cold-starts, so **give it ~30–60 s** (and a refresh) the first
+   time — say this is expected (already called out in `README.md`).
 
-Known: the demo URL uses free tiers, so if it's cold when you open it, wait.
+Env vars Render needs on the service (all preset in `render.yaml`):
+`API_URL=http://localhost:3001` (baked web proxy target), `PORT=10000`,
+`GW_APP=` (empty = run both processes), `POSTGRES_URL`.
+
+To test manually instead of via Blueprint: **New → Web Service → connect repo →
+Language = Docker**. The Dockerfile bakes `API_URL` from a build arg (defaults to
+`http://api:3001` for compose); on a split deployment pass
+`--build-arg API_URL=https://<api-public-url>`.
+
+Alternative host styles (documented caveats):
+
+1. **One host, compose as-is (recommended if you have a `$5/mo` VPS):** run the
+   `docker-compose.yml` verbatim; `DB` and `web` share the compose network, so
+   `API_URL=http://api:3001` is correct. One public port through `web`.
+2. **Railway + Vercel is a poor fit here:** the `api` is a long-lived Express
+   server doing SSE + a persistent Postgres pool — Vercel serverless can't hold
+   the SSE stream or pool, and the `web` standalone proxies `/events`
+   server-side. If forced, run the full compose on Railway and keep Vercel out.
+3. **Free-tier caveats:** free instances **sleep after 15 min idle** and
+   cold-start 20–60 s. **Say this in the README** and keep the demo video as the
+   fallback (G6). Railway free tier is a $5 credit, not forever-free.
+4. **TLS:** Render/Railway give an https URL directly. On a raw VPS put Caddy
+   (auto-TLS) in front, or accept http for the demo and note it.
+
+Known: the demo URL is free tier, so if it's cold when you open it, wait ~30 s
+and refresh before concluding it's down.
 
 ## Troubleshooting
 

@@ -1,0 +1,31 @@
+# Render Blueprint for the GridWatch demo (G4).
+#
+# One web service runs BOTH the api (port 3001) and the console (on $PORT)
+# in a single container via entrypoint.sh, so the free tier's independent
+# per-service sleep does not double the cold-start window. The web proxies
+# /api and /events to http://localhost:3001 (baked via the API_URL build arg).
+#
+# Postgres is Neon (free, never expires). After you create the Neon DB, create
+# the service in the dashboard and set POSTGRES_URL there as a secret (Render
+# injects env vars as build args automatically, and API_URL is non-sensitive).
+#
+# Deploy: push this repo, then in Render Dashboard:
+#   New -> Blueprint -> connect the repo -> Apply.
+services:
+  - type: web
+    name: gridwatch-ai
+    runtime: docker
+    plan: free
+    rootDir: .
+    dockerContext: .
+    dockerCommand: /bin/sh entrypoint.sh
+    healthCheckPath: /health
+    envVars:
+      - key: API_URL
+        value: http://localhost:3001
+      - key: PORT
+        value: '10000'
+      - key: GW_APP
+        value: ''
+      - key: POSTGRES_URL
+        sync: false
