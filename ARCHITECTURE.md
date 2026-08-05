@@ -127,6 +127,15 @@ incident. Two separate faults on the same line produce two disjoint components
 pole in a component maps to the same cut edge. A monotonic check: the number of
 tickets equals the number of boundary components, never the number of dark poles.
 
+**Blind-pole contraction.** Grouping is run over each pole's **nearest
+device-bearing ancestor**, not the raw tree. A non-instrumented pole (empty
+`device_id`) carries no liveness, so a single dark region that crosses one would
+otherwise be split into two components (the blind pole reads as "live"). By
+contracting blind poles, one physical dark region stays one incident across a
+coverage gap; the physical affected set (households, pincode, coordinates) is
+still expanded through the blind poles. This is the ~9% no-device gap made
+honest: it costs confidence (via coverage), not correctness.
+
 ### 4.4 Confidence (D5)
 
 `confidence = coverage × cleanliness × timing × topology_source`, each in
