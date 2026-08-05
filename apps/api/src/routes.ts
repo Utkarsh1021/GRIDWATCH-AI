@@ -45,7 +45,7 @@ export function createRouter(deps: {
   });
 
   r.get('/api/network/poles', (_req, res) => {
-    res.json(runtime.poles);
+    res.json(runtime.poles.map((p) => ({ ...p, device_id: runtime.poleToDevice.get(p.id) ?? null })));
   });
 
   r.get('/api/poles/state', (_req, res) => {
