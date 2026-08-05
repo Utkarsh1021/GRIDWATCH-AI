@@ -23,6 +23,7 @@ RUN corepack enable
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app /app
+RUN chmod +x /app/entrypoint.sh
 EXPOSE 3000 3001
 # GW_APP switches between the api (default) and web standalone server so one
 # image can serve both Render services.

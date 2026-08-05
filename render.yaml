@@ -18,7 +18,7 @@ services:
     plan: free
     rootDir: .
     dockerContext: .
-    dockerCommand: /bin/sh entrypoint.sh
+    dockerCommand: /bin/sh /app/entrypoint.sh
     healthCheckPath: /health
     envVars:
       - key: API_URL
