@@ -97,11 +97,13 @@ export class Simulator {
   ): { emitted: number; dropped: number } {
     let emitted = 0;
     let dropped = 0;
-    let seqBase = 0;
     for (const pid of poles) {
       const dev = this.deviceFor(pid);
       if (!dev) continue; // no device: nothing reports
-      seqBase += 100;
+      // Start above the runtime's current per-device seq so a fault can be
+      // re-injected after a repair (repair base is 1,000,000) without dedupe
+      // dropping every message.
+      const seqBase = (this.runtime.deviceSeq.get(dev) ?? 0) + 1;
       const fw = this.runtime.deviceFw.get(dev) ?? '1.4.2';
       const is12 = fw.startsWith('1.2');
       // In clean mode every affected pole reports power_lost so the dark set forms
@@ -192,11 +194,12 @@ export class Simulator {
     if (!target) return { kind: 'repair', target: '', affectedPoles: 0, messagesEmitted: 0, messagesDropped: 0, note: 'no open incident to repair' };
     const affected = target.affected_pole_ids;
     let emitted = 0;
-    let seq = 1_000_000; // guaranteed higher than any fault-simulation seq, so dedupe never drops restorals
     for (const pid of affected) {
       const dev = this.deviceFor(pid);
       if (!dev) continue;
-      seq += 100;
+      // Start above the runtime's current per-device seq so restorations are
+      // never deduped away, no matter how high previous fault/repair seqs went.
+      const seq = (this.runtime.deviceSeq.get(dev) ?? 0) + 1;
       this.emit(
         { device_id: dev, pole_id: pid, event: 'power_restored', energized: true, ts: new Date().toISOString(), seq, battery_mv: 3480, rssi: -80, fw: '1.4.2' },
         false,

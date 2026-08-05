@@ -147,15 +147,18 @@ export class Incidents {
         const s = liveness.get(p);
         return !!s && s.known && !s.dark;
       }).length;
-      const ratio = inc.affected_pole_ids.length > 0 ? live / inc.affected_pole_ids.length : 1;
+      // Device-less poles can never report telemetry, so verification is judged
+      // only against poles that actually have a device.
+      const reportable = inc.affected_pole_ids.filter((p) => this.runtime.deviceFor(p)).length;
+      const ratio = reportable > 0 ? live / reportable : 1;
 
       if (ratio >= env.verifyThreshold) {
-        await this.transition(id, ratio >= env.verifyThreshold ? 'verified' : inc.status, {
-          note: `telemetry: ${live}/${inc.affected_pole_ids.length} affected poles live`,
+        await this.transition(id, 'verified', {
+          note: `telemetry: ${live}/${reportable} reportable poles live`,
         });
         await this.transition(id, 'closed', { note: 'auto-verified from telemetry' });
       } else if (inc.status === 'resolved' && !seenSigs.has(this.signatureFromIncident(inc))) {
-        await this.transition(id, 'disputed', { note: `marked fixed but ${inc.affected_pole_ids.length - live} affected poles still dark` });
+        await this.transition(id, 'disputed', { note: `marked fixed but ${reportable - live} reportable poles still dark` });
       }
     }
   }

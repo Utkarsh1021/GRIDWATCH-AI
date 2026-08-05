@@ -62,6 +62,7 @@ export class Ingest {
           event_ts: new Date(b.event.ts),
         })),
       )
+      .onConflictDoNothing()
       .catch((e) => {
         console.error('[ingest] batch write failed', e);
         this.buffer.unshift(...batch);
