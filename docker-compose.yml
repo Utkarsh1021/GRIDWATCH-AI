@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: gridwatch
+      POSTGRES_PASSWORD: gridwatch
+      POSTGRES_DB: gridwatch
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U gridwatch -d gridwatch']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gridwatch-api:local
+    working_dir: /app
+    command: ['node', 'apps/api/dist/index.js']
+    environment:
+      POSTGRES_URL: postgres://gridwatch:gridwatch@db:5432/gridwatch
+      PORT: '3001'
+      SEED_ON_START: 'true'
+      SEED_SCALE: '${SEED_SCALE:-small}'
+      HEARTBEAT_MS: '${HEARTBEAT_MS:-900000}'
+      DETECTION_TICK_MS: '${DETECTION_TICK_MS:-15000}'
+      AI_API_KEY: '${AI_API_KEY:-}'
+    ports:
+      - '${API_PORT:-3001}:3001'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gridwatch-web:local
+    working_dir: /app/apps/web/.next/standalone
+    command: ['node', 'apps/web/server.js']
+    environment:
+      API_URL: http://api:3001
+      PORT: '3000'
+      HOSTNAME: '0.0.0.0'
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
