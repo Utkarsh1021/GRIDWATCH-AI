@@ -11,6 +11,8 @@ export const env = {
   silenceGraceMs: Number(process.env.SILENCE_GRACE_MS ?? 120000),
   verifyThreshold: Number(process.env.VERIFY_THRESHOLD ?? 0.9),
   detectionTickMs: Number(process.env.DETECTION_TICK_MS ?? 15000),
+  fleetEnabled: (process.env.FLEET_ENABLED ?? 'true') === 'true',
+  fleetHeartbeatMs: Number(process.env.FLEET_HEARTBEAT_MS ?? 900000),
   aiApiKey: process.env.AI_API_KEY ?? '',
   aiModel: process.env.AI_MODEL ?? 'gpt-4o-mini',
 };

@@ -60,6 +60,18 @@ run). Fix: `.onConflictDoNothing()` on the log insert. The log is a denormalized
 audit trail; the source of truth is the runtime seq/power state, which is what
 drives detection.
 
+**L10 — Background fleet heartbeater.** The demo stack had no component emitting
+background telemetry, so after ~32 min of silence-detection (`2 × heartbeatMs +
+grace`) every device-bearing pole decayed to "dark", destroying live/dark
+boundary detection and making the console show the whole network down. A
+`FleetHeartbeater` now emits one `heartbeat` per powered, device-bearing pole on
+the real contract cadence (`HEARTBEAT_MS`, 15 min, `FLEET_HEARTBEAT_MS` to
+override, `FLEET_ENABLED=false` to disable), primed immediately at boot. It
+skips poles that are already dark (no power, no heartbeat) and devices that have
+gone silent (e.g. `device-die` noise), so it reinforces detection instead of
+resurrecting faults. The load harness still resets seq baselines per device via
+`boot`, so the two do not collide.
+
 **L9 — Docker image tags.** Two services from one Dockerfile; they must be
 tagged distinctly (`gridwatch-api:local`, `gridwatch-web:local`) or the second
 build fails with "already exists". Ports are env-templated (`API_PORT`,

@@ -8,6 +8,7 @@ import { Runtime } from './runtime.js';
 import { Ingest } from './ingest.js';
 import { Incidents } from './incidents.js';
 import { Simulator } from './simulator.js';
+import { FleetHeartbeater } from './fleet.js';
 import { EventHub } from './sse.js';
 import { createRouter } from './routes.js';
 import { env } from './config.js';
@@ -39,6 +40,13 @@ async function main() {
   const incidents = new Incidents(db, runtime, hub);
   await incidents.loadOpen();
   const simulator = new Simulator(db, runtime, ingest, incidents);
+
+  // Background fleet: keeps powered poles heartbeating so the network does not
+  // silently decay to "all dark" from silence-detection.
+  if (env.fleetEnabled) {
+    const fleet = new FleetHeartbeater(runtime, ingest, env.fleetHeartbeatMs);
+    fleet.start();
+  }
 
   const app = express();
   app.use(cors());
