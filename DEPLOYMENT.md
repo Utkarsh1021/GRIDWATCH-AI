@@ -96,6 +96,12 @@ Env vars Render needs on the service (all preset in `render.yaml`):
 `API_URL=http://localhost:3001` (baked web proxy target), `PORT=10000`,
 `GW_APP=` (empty = run both processes), `POSTGRES_URL`.
 
+> The Next `standalone` server lives at
+> `apps/web/.next/standalone/apps/web/server.js`, not `apps/web/server.js`.
+> `entrypoint.sh` `cd`s into the standalone dir before `node`, mirroring what
+> compose's per-service `working_dir` did — if you customise the deploy, keep
+> this path in mind (it's what causes "Cannot find module apps/web/server.js").
+
 To test manually instead of via Blueprint: **New → Web Service → connect repo →
 Language = Docker**. The Dockerfile bakes `API_URL` from a build arg (defaults to
 `http://api:3001` for compose); on a split deployment pass

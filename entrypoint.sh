@@ -8,7 +8,9 @@
 #
 # docker compose overrides the CMD per service, so it never hits this file.
 set -e
+WEB_DIR=apps/web/.next/standalone
 if [ "$GW_APP" = "web" ]; then
+  cd /app/$WEB_DIR
   exec node apps/web/server.js
 fi
 if [ "$GW_APP" = "api" ]; then
@@ -17,4 +19,5 @@ fi
 # Both: api in the background, web as the foreground process so Render's
 # process manager and health checks track the right one.
 PORT=3001 node apps/api/dist/index.js &
+cd /app/$WEB_DIR
 exec node apps/web/server.js
