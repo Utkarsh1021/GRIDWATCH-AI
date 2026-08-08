@@ -3,7 +3,7 @@ const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   async rewrites() {
-    const api = process.env.API_URL ?? 'http://localhost:3001';
+    const api = process.env.API_URL || 'http://localhost:3001';
     return [
       { source: '/api/:path*', destination: `${api}/api/:path*` },
       { source: '/ingest', destination: `${api}/ingest` },
