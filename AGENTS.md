@@ -144,3 +144,11 @@ in `04-evaluation.md` are: localization 25%, product judgment 20%, architecture
 Spend effort accordingly — localization correctness and the missing-topology
 answer move the score most; reproducible run + honest "what's broken" notes
 gate everything.
+
+## Current status (keep docs in sync)
+
+Deployed at https://gridwatch-ai.onrender.com (free tier, cold-starts 30–60 s).
+All perf targets are **measured** in-repo and recorded in `ARCHITECTURE.md` §11
+(sustained 991 msg/s, 5,000/10 s burst with 0 loss, fault→ticket 15.5 s p95,
+restore→verified 15.3 s p95, console list 15 ms p50). Remaining deliverable:
+the G6 demo video link.

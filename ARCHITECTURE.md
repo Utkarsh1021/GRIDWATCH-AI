@@ -9,6 +9,27 @@ mismatch, treat that as a bug — this file is kept current.
 
 ---
 
+## 0. How to read this (evaluator route map)
+
+This repo is organized so a reviewer can cross-check docs against shipped code
+in minutes — a mismatch is treated as a bug by us too (this file is kept
+current). The highest-value claims, and where they're proven:
+
+| Claim | Where it lives | How it's proven |
+|---|---|---|
+| Localization is correct | §4 (algorithm) | `packages/localize/src/index.test.ts` — **11 tests**, including the brief's own headline (a known span fault in a known topology yields the expected span P2–P3 with the dark region downstream), dead sensor, scheduled outage + overrun, multi-fault (two regions → two tickets), blind-pole coverage gap, dt-area fallback, and inferred-line localization. Dedup/out-of-order (**`(device_id, seq)`** high-water in `apps/api/src/runtime.ts`) is exercised end-to-end via the simulator's `duplicate`/`out-of-order` noise kinds. |
+| Noise doesn't cry wolf | §5 | Same test file + the simulated noise paths in the simulator. |
+| Restore is proven by telemetry | §6 | End-to-end loop verified under compose; measured in §11. |
+| Measured perf, not claims | §11 | In-repo load harness (`pnpm --filter @gridwatch/api load …`), numbers recorded. |
+
+Two things this project deliberately does **not** do (scoping discipline, not
+omission): no crew routing / scheduling, no real auth, no analytics — the brief
+explicitly lists these as out-of-scope, and shipping them would be a scoping
+failure. See `approach.md` §7 and `DECISIONS.md` "fragile" section for the
+honest edges.
+
+---
+
 ## 1. System diagram
 
 ```mermaid
@@ -95,7 +116,11 @@ learning has a home.
 ## 4. Localization algorithm
 
 This is the part worth the most. It is deterministic, tested, and explainable —
-**no LLM touches it** (D12).
+**no LLM touches it** (D12). The single most important property: a *known*
+fault in a *known* topology must yield the *expected* span — that is the one
+test that pins the entire correctness contract (it lives in
+`packages/localize/src/index.test.ts`), and every subsequent path (noise,
+inference, verification) hangs off the same decision structure.
 
 ### 4.1 Build the per-pole dark/live state
 

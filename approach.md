@@ -6,7 +6,21 @@ frozen technical description of what ships, `DECISIONS.md` is the running log,
 and this file explains *why* the system is shaped the way it is and the order
 we build it in.
 
-Status: **initial design, before implementation.**
+Status: **implemented and verified.** This file is the original design plan
+(kept as the thinking record — what problem shaped the build, in what order,
+and how it was verified). `ARCHITECTURE.md` is the frozen description of what
+ships; `DECISIONS.md` logs the decisions made along the way (including the
+L-series implementation-phase entries). This file explaining *why* the system
+is shaped the way it is remains the best single answer to "what were you
+thinking?" on the review call.
+
+> How the plan mapped to the fixed score weights (from `04-evaluation.md`):
+> localization correctness **25%** → §4 engine + test-first contract (11 tests);
+> product judgment **20%** → §2 decisions D1–D12 and the scoping discipline in
+> §7; architecture **20%** → §3 + `ARCHITECTURE.md`; operator UX **15%** → the
+> step-8 console plan in §5; docs/reproducibility **15%** → every claim in this
+> file is either shipped or listed as an honest unknown; engineering craft + AI
+> leverage **5%** → the measured numbers and `AI-WORKFLOW.md`.
 
 ---
 

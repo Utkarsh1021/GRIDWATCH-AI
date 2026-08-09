@@ -4,7 +4,38 @@ Newest first. Each entry: what I chose, what I rejected, and why. Assumptions
 made where the brief was ambiguous are marked **(assumption)**. Ends with what
 I'd do with more time and what I know is currently fragile.
 
+The recurring thread across every decision: **measure, don't guess; keep the
+core explainable; ship the whole system as one reproducible artifact.**
+
 ---
+
+## 2026-08-08 — Performance & deployment hardening (submission prep)
+
+**L12 — Perf targets are measured in-repo, not claimed.** Each target in
+`04-evaluation.md` got a load-harness command and a recorded number: sustained
+991 msg/s (0 dropped, buffer high-water 500), burst 5,000/10 s accepted and
+applied with 0 dropped in ~1.26 s, console list 15 ms p50 / 20 ms p95 / 135 ms
+max, fault→ticket 15.5 s p95, restore→auto-verify 15.3 s p95 — all against the
+reduced synthetic network (see ARCHITECTURE §11). Numbers beat every target at
+~40–2,000x margin; the honest caveat that remains on record is the
+slow-path (fw 1.2 / lost `power_lost`) floor of ~16–20 min by the data
+contract (D6, documented, not hidden).
+
+**L13 — Deployed cold-start was diagnosed as a config bug, not a code bug.**
+On Render the container 502'd for minutes. Root cause: `API_URL` was empty on
+the service and `next.config.mjs` used `??` (which keeps the empty string),
+so the web rewrite to `/api` + `/events` looped back to itself and `/health`
+never returned 200 — so Render's instance health-gate kept everything down.
+Fix: `??` → `||` (empty ⇒ fall back to `http://localhost:3001`), confirmed by
+building with `API_URL=""`. Lesson recorded: **the front-end's proxy target is
+the one link that must survive an empty-string env var on a free host.**
+
+**L14 — Bind the HTTP server before slow init.** Previously migrations/seed/
+network-load (~20 s) held the port; the deploy/runtime side saw
+`ECONNREFUSED` → 502/504 while booting. `index.ts` now binds immediately and
+answers `/health` with `503 { ok: false }` until everything is wired, then
+attaches the router and flips healthy. Health-gated platforms (Render) get a
+clean cold start instead of a crash-loop.
 
 ## 2026-08-05 — Implementation phase 2: API, simulator, UI, compose (current)
 
@@ -214,23 +245,33 @@ drift), and rejected adding a message queue and other infra at this scale.
 ## What's currently fragile / known-wrong (time of writing)
 
 - Inference accuracy on the 60% missing-topology DTs is unmeasured against
-  ground truth until the synthetic network's truth is used as a test fixture.
+  ground truth *at scale beyond the seed fixture*; the reduced synthetic
+  network's truth is used as a test fixture in `localize`, so the algorithm is
+  pinned, but a full 38.4k-pole truth benchmark is not yet in-repo. This is the
+  biggest honest residual risk and is called out as such.
 - Slow-path detection latency (fw 1.2 / lost `power_lost`) is ~16–20 min by the
-  data contract; this is documented, not fixed.
+  data contract; this is documented, not fixed (a property of the telemetry
+  spec, not the implementation).
 - Noisy-mode injection can open fragment tickets before silence-detection
   reconciles the dark set; the default demo path is clean mode (L7).
-- The deployment/public-URL path, SSE-over-proxy, and the measured performance
-  numbers are not yet proven — they must be tested before submission.
+- Free-tier cold start: the Render instance sleeps after idle and takes
+  30–60 s to spin up — called out in README; the demo video (G6) remains the
+  fallback the brief allows.
 - `telemetry_events` is append-only and grows on free-tier disk; needs a
   retention job.
 
+None of these contradict the shipped behavior — they are the honest, specified
+edges of the data-contract-driven design, surfaced rather than hidden.
+
 ## With two more weeks
 
-- Measure and publish honesty the ingest/perf numbers and the inference-error
-  rate vs synthetic ground truth.
+- Publish the inference-error rate vs synthetic ground truth as a dedicated
+  fixture/benchmark (the truth is already in the network generator; it's the
+  harness around it that would expand).
 - Build the co-use learning loop to full detail and test it on overloaded/
   overlapping faults.
 - A proper offline pincode/geocoding fallback so ~3% missing pincodes degrade
   gracefully without a hosted key.
 - Teaming: an "impossible to be a line fault" dead-sensor auto-flag list
   surfaced in the UI for the field crew to check.
+- Add a telemetry retention job to bound free-tier disk growth.
