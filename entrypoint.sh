@@ -20,4 +20,4 @@ fi
 # process manager and health checks track the right one.
 PORT=3001 node apps/api/dist/index.js &
 cd /app/$WEB_DIR
-exec node apps/web/server.js
+HOSTNAME=0.0.0.0 PORT="${PORT:-10000}" exec node apps/web/server.js
